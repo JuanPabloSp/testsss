@@ -9,7 +9,7 @@ provider "azurerm" {
 # Un contenedor lógico donde vivirá toda nuestra infraestructura.
 resource "azurerm_resource_group" "rg" {
   name     = "rg-az400-devops-lab"
-  location = "West Europe"
+  location = "Norway East"
 }
 
 # 3. GENERADOR DE SUFIJOS ALEATORIOS
