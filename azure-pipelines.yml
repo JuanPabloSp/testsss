@@ -1,0 +1,22 @@
+trigger:
+  - master # El pipeline se lanzará al hacer cambios en la rama master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: AzureCLI@2
+  displayName: 'Despliegue automatizado con Terraform'
+  inputs:
+    azureSubscription: 'Conexion-Lab-Azure' # Nombre de la conexión que usaremos
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "1. Inicializando Terraform..."
+      terraform init
+      
+      echo "2. Validando código..."
+      terraform validate
+      
+      echo "3. Desplegando infraestructura..."
+      terraform apply -auto-approve -lock=false
