@@ -1,5 +1,5 @@
 trigger:
-  - master # El pipeline se lanzará al hacer cambios en la rama master
+  - master
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -8,10 +8,15 @@ steps:
 - task: AzureCLI@2
   displayName: 'Despliegue automatizado con Terraform'
   inputs:
-    azureSubscription: 'Conexion-Lab-Azure' # Nombre de la conexión que usaremos
+    azureSubscription: 'Conexion-Lab-Azure-RG' # Usamos la conexión que creaste en el paso anterior
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
+      echo "0. Instalando Terraform..."
+      wget https://releases.hashicorp.com/terraform/1.8.3/terraform_1.8.3_linux_amd64.zip
+      unzip terraform_1.8.3_linux_amd64.zip
+      sudo mv terraform /usr/local/bin/
+      
       echo "1. Inicializando Terraform..."
       terraform init
       
