@@ -1,3 +1,13 @@
+# Terraform
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfvars
+*.tfplan
+crash.log
+
+# IDE
+.vscode/
+
+# Antigravity Skills (Ignoramos esta carpeta gigante que no pertenece al código de infra)
+skills/

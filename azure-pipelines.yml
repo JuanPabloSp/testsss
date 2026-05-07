@@ -1,27 +1,89 @@
 trigger:
-  - master
+  branches:
+    include:
+      - main
+      - master
 
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- task: AzureCLI@2
-  displayName: 'Despliegue automatizado con Terraform'
-  inputs:
-    azureSubscription: 'Conexion-Lab-Azure-RG' # Usamos la conexión que creaste en el paso anterior
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      echo "0. Instalando Terraform..."
-      wget https://releases.hashicorp.com/terraform/1.8.3/terraform_1.8.3_linux_amd64.zip
-      unzip terraform_1.8.3_linux_amd64.zip
-      sudo mv terraform /usr/local/bin/
-      
-      echo "1. Inicializando Terraform..."
-      terraform init
-      
-      echo "2. Validando código..."
-      terraform validate
-      
-      echo "3. Desplegando infraestructura..."
-      terraform apply -auto-approve -lock=false
+variables:
+  - name: serviceConnection
+    value: 'Conexion-Lab-Azure-RG'
+
+stages:
+  - stage: BuildAndValidate
+    displayName: 'Validation Stage'
+    jobs:
+      - job: ValidateTerraform
+        displayName: 'Install & Validate Terraform'
+        steps:
+          - script: |
+              echo "0. Instalando Terraform..."
+              wget https://releases.hashicorp.com/terraform/1.8.3/terraform_1.8.3_linux_amd64.zip
+              unzip terraform_1.8.3_linux_amd64.zip
+              sudo mv terraform /usr/local/bin/
+            displayName: 'Install Terraform'
+
+          - script: |
+              echo "Validando entorno Dev"
+              cd infra/envs/dev
+              terraform init -backend=false
+              terraform validate
+            displayName: 'Validate Dev Environment'
+
+          - script: |
+              echo "Validando entorno Prod"
+              cd infra/envs/prod
+              terraform init -backend=false
+              terraform validate
+            displayName: 'Validate Prod Environment'
+
+  - stage: DeployDev
+    displayName: 'Deploy to Dev'
+    dependsOn: BuildAndValidate
+    condition: succeeded()
+    jobs:
+      - job: DeployDevJob
+        displayName: 'Apply Dev'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Deploy Dev Infrastructure'
+            inputs:
+              azureSubscription: '$(serviceConnection)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Ensure Terraform is installed again if it's a different agent
+                wget https://releases.hashicorp.com/terraform/1.8.3/terraform_1.8.3_linux_amd64.zip
+                unzip terraform_1.8.3_linux_amd64.zip
+                sudo mv terraform /usr/local/bin/
+                
+                cd infra/envs/dev
+                terraform init
+                terraform plan -out=tfplan
+                terraform apply -auto-approve tfplan
+
+  - stage: DeployProd
+    displayName: 'Deploy to Prod'
+    dependsOn: DeployDev
+    condition: succeeded()
+    jobs:
+      - job: DeployProdJob
+        displayName: 'Apply Prod'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Deploy Prod Infrastructure'
+            inputs:
+              azureSubscription: '$(serviceConnection)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                wget https://releases.hashicorp.com/terraform/1.8.3/terraform_1.8.3_linux_amd64.zip
+                unzip terraform_1.8.3_linux_amd64.zip
+                sudo mv terraform /usr/local/bin/
+                
+                cd infra/envs/prod
+                terraform init
+                terraform plan -out=tfplan
+                terraform apply -auto-approve tfplan
